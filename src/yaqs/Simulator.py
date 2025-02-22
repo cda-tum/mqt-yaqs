@@ -42,38 +42,81 @@ def run(initial_state: MPS, operator, sim_params, noise_model: NoiseModel=None, 
 
     # Prepare arguments for each trajectory
     args = [(i, initial_state, noise_model, sim_params, operator) for i in range(sim_params.N)]
-    
-    if parallel:
-        max_workers = max(1, multiprocessing.cpu_count() - 1)
-        with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
-            futures = {executor.submit(sim_params.backend, arg): arg[0] for arg in args}
-            with tqdm(total=sim_params.N, desc="Running trajectories", ncols=80) as pbar:
-                for future in concurrent.futures.as_completed(futures):
-                    i = futures[future]
-                    try:
-                        result = future.result()
-                        if isinstance(operator, QuantumCircuit) and isinstance(sim_params, WeakSimParams):
-                            sim_params.measurements[i] = result
-                        else:
-                            for obs_index, observable in enumerate(sim_params.sorted_observables):
-                                observable.trajectories[i] = result[obs_index]
-                    except Exception as e:
-                        print(f"\nTrajectory {i} failed with exception: {e}.")
-                    finally:
-                        pbar.update(1)
+
+
+
+
+
+    if sim_params.order == 3:
+        print('order 3!')
+        if parallel:
+            max_workers = max(1, multiprocessing.cpu_count() - 1)
+            with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
+                futures = {executor.submit(sim_params.backend, arg): arg[0] for arg in args}
+                with tqdm(total=sim_params.N, desc="Running trajectories", ncols=80) as pbar:
+                    for future in concurrent.futures.as_completed(futures):
+                        i = futures[future]
+                        try:
+                            result = future.result()
+                            if isinstance(operator, QuantumCircuit) and isinstance(sim_params, WeakSimParams):
+                                sim_params.measurements[i] = result
+                            else:
+                                for obs_index, observable in enumerate(sim_params.sorted_observables):
+                                    observable.trajectories[i] = result[obs_index]
+                        except Exception as e:
+                            print(f"\nTrajectory {i} failed with exception: {e}.")
+                        finally:
+                            pbar.update(1)
+        else:
+            for i, arg in enumerate(args):
+                try:
+                    result = sim_params.backend(arg)
+                    if isinstance(operator, QuantumCircuit) and isinstance(sim_params, WeakSimParams):
+                        sim_params.measurements[i] = result
+                    else:
+                        for obs_index, observable in enumerate(sim_params.sorted_observables):
+                            observable.trajectories[i] = result[obs_index]
+                except Exception as e:
+                    print(f"Trajectory {i} failed with exception: {e}.")
+        
+        if isinstance(operator, QuantumCircuit) and isinstance(sim_params, WeakSimParams):
+            sim_params.aggregate_measurements()
+        else:
+            sim_params.aggregate_trajectories()
+
+
     else:
-        for i, arg in enumerate(args):
-            try:
-                result = sim_params.backend(arg)
-                if isinstance(operator, QuantumCircuit) and isinstance(sim_params, WeakSimParams):
-                    sim_params.measurements[i] = result
-                else:
-                    for obs_index, observable in enumerate(sim_params.sorted_observables):
-                        observable.trajectories[i] = result[obs_index]
-            except Exception as e:
-                print(f"Trajectory {i} failed with exception: {e}.")
-    
-    if isinstance(operator, QuantumCircuit) and isinstance(sim_params, WeakSimParams):
-        sim_params.aggregate_measurements()
-    else:
-        sim_params.aggregate_trajectories()
+        if parallel:
+            max_workers = max(1, multiprocessing.cpu_count() - 1)
+            with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
+                futures = {executor.submit(sim_params.backend, arg): arg[0] for arg in args}
+                with tqdm(total=sim_params.N, desc="Running trajectories", ncols=80) as pbar:
+                    for future in concurrent.futures.as_completed(futures):
+                        i = futures[future]
+                        try:
+                            result = future.result()
+                            if isinstance(operator, QuantumCircuit) and isinstance(sim_params, WeakSimParams):
+                                sim_params.measurements[i] = result
+                            else:
+                                for obs_index, observable in enumerate(sim_params.sorted_observables):
+                                    observable.trajectories[i] = result[obs_index]
+                        except Exception as e:
+                            print(f"\nTrajectory {i} failed with exception: {e}.")
+                        finally:
+                            pbar.update(1)
+        else:
+            for i, arg in enumerate(args):
+                try:
+                    result = sim_params.backend(arg)
+                    if isinstance(operator, QuantumCircuit) and isinstance(sim_params, WeakSimParams):
+                        sim_params.measurements[i] = result
+                    else:
+                        for obs_index, observable in enumerate(sim_params.sorted_observables):
+                            observable.trajectories[i] = result[obs_index]
+                except Exception as e:
+                    print(f"Trajectory {i} failed with exception: {e}.")
+        
+        if isinstance(operator, QuantumCircuit) and isinstance(sim_params, WeakSimParams):
+            sim_params.aggregate_measurements()
+        else:
+            sim_params.aggregate_trajectories()

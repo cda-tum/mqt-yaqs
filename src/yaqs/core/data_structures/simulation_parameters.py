@@ -42,9 +42,15 @@ class PhysicsSimParams:
         if self.order == 1:
             from yaqs.physics.PhysicsTJM import PhysicsTJM_1
             self.backend = PhysicsTJM_1
-        else:
+        if self.order == 2:
             from yaqs.physics.PhysicsTJM import PhysicsTJM_2
             self.backend = PhysicsTJM_2
+        if self.order == 3:
+            from yaqs.physics.PhysicsTJM import PhysicsTJM_1_analytical_grad
+            self.backend = PhysicsTJM_1_analytical_grad
+            self.expvals_A_nk = None
+
+
 
     def aggregate_trajectories(self):
         for observable in self.observables:
